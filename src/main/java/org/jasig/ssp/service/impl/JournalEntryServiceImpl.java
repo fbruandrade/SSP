@@ -38,12 +38,9 @@ import org.jasig.ssp.transferobject.reports.JournalStepStudentReportTO;
 import org.jasig.ssp.util.sort.PagingWrapper;
 import org.jasig.ssp.util.sort.SortingAndPaging;
 import org.jasig.ssp.web.api.validation.ValidationException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -56,14 +53,17 @@ public class JournalEntryServiceImpl
 		extends AbstractRestrictedPersonAssocAuditableService<JournalEntry>
 		implements JournalEntryService {
 
-	@Autowired
-	private transient JournalEntryDao dao;
+	private final transient JournalEntryDao dao;
 
-	@Autowired
-	private transient PersonProgramStatusService personProgramStatusService;
+	private final transient PersonProgramStatusService personProgramStatusService;
 	
-	@Autowired
-	private transient PersonDao personDao;
+	private final transient PersonDao personDao;
+
+	public JournalEntryServiceImpl(JournalEntryDao dao, PersonProgramStatusService personProgramStatusService, PersonDao personDao) {
+		this.dao = dao;
+		this.personProgramStatusService = personProgramStatusService;
+		this.personDao = personDao;
+	}
 
 	@Override
 	protected JournalEntryDao getDao() {
@@ -128,7 +128,7 @@ public class JournalEntryServiceImpl
  	@Override
  	public List<JournalCaseNotesStudentReportTO> getJournalCaseNoteStudentReportTOsFromCriteria(JournalStepSearchFormTO personSearchForm, SortingAndPaging sAndP) throws ObjectNotFoundException{
  		 final List<JournalCaseNotesStudentReportTO> personsWithJournalEntries = dao.getJournalCaseNoteStudentReportTOsFromCriteria(personSearchForm, sAndP);
- 		 final Map<String, JournalCaseNotesStudentReportTO> map = new HashMap<String, JournalCaseNotesStudentReportTO>();
+ 		 final Map<String, JournalCaseNotesStudentReportTO> map = new HashMap<>();
 
  		 for(JournalCaseNotesStudentReportTO entry:personsWithJournalEntries){
  			 map.put(entry.getSchoolId(), entry);
@@ -162,28 +162,27 @@ public class JournalEntryServiceImpl
  	}
  		 
 	private static void sortByStudentName(List<JournalCaseNotesStudentReportTO> toSort) {
-		Collections.sort(toSort,  new Comparator<JournalCaseNotesStudentReportTO>() {
-	        public int compare(JournalCaseNotesStudentReportTO p1, JournalCaseNotesStudentReportTO p2) {
-	        	
-	        	int value = p1.getLastName().compareToIgnoreCase(
-	     	                    p2.getLastName());
-	        	if(value != 0)
-	        		return value;
-	        	
-	        	value = p1.getFirstName().compareToIgnoreCase(
- 	                    p2.getFirstName());
-		       if(value != 0)
-        		 return value;
-		       if(p1.getMiddleName() == null && p2.getMiddleName() == null)
-		    	   return 0;
-		       if(p1.getMiddleName() == null)
-		    	   return -1;
-		       if(p2.getMiddleName() == null)
-		    	   return 1;
-		       return p1.getMiddleName().compareToIgnoreCase(
-	                    p2.getMiddleName());
-	        }
-	    });
+		toSort.sort((p1, p2) -> compareStudent(p1.getLastName(), p2.getLastName(), p1.getFirstName(), p2.getFirstName(), p1.getMiddleName(), p2.getMiddleName(), p1, p2));
+	}
+
+	public static int compareStudent(String lastName, String lastName2, String firstName, String firstName2, String middleName, String middleName2, JournalCaseNotesStudentReportTO p1, JournalCaseNotesStudentReportTO p2) {
+		int value = lastName.compareToIgnoreCase(
+				lastName2);
+		if (value != 0)
+			return value;
+
+		value = firstName.compareToIgnoreCase(
+				firstName2);
+		if (value != 0)
+			return value;
+		if (middleName == null && middleName2 == null)
+			return 0;
+		if (middleName == null)
+			return - 1;
+		if (middleName2 == null)
+			return 1;
+		return middleName.compareToIgnoreCase(
+				middleName2);
 	}
 
 }
